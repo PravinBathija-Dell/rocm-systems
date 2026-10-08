@@ -4094,7 +4094,7 @@
         {
           "name": "GIN_DeviceMPI_AllTests",
           "description": "GIN proxy device-side MPI tests over IB across two nodes (put/signal/counter/barrier/alltoall/recycle/splitShare)",
-          "test_filter": "GinMPIDeviceTests.*:GinProxyNthreadsSplitTests.*-GinMPIDeviceTests.MultiContext_NonPowerOf2:GinMPIDeviceTests.RailConnection_Create:GinMPIDeviceTests.*_MultiContext:GinMPIDeviceTests.Signal_ExplicitWeak:GinMPIDeviceTests.Signal_ExplicitStrong",
+          "test_filter": "GinMPIDeviceTests.*:GinProxyNthreadsSplitTests.*-GinMPIDeviceTests.MultiContext_NonPowerOf2:GinMPIDeviceTests.RailConnection_Create:GinMPIDeviceTests.*_MultiContext:GinMPIDeviceTests.Signal_ExplicitWeak:GinMPIDeviceTests.Signal_ExplicitStrong:GinMPIDeviceTests.Timeout_*",
           "timeout": 600
         },
         {
@@ -4146,6 +4146,11 @@
           "env_variables": {
             "NCCL_GIN_PROXY_NTHREADS": "4"
           }
+        },
+        {
+          "name": "GIN_DeviceMPI_Timeouts",
+          "description": "Device-side timeouts over the IB proxy: flush, flushAsync + wait, waitSignal (indexed and VA), waitCounter and their C entry points",
+          "test_filter": "GinMPIDeviceTests.Timeout_*"
         }
       ]
     },
