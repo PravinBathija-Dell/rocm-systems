@@ -4,7 +4,6 @@
 """Unit tests for rocprof_compute_analyze/analysis_cli.py."""
 
 import argparse
-from argparse import Namespace
 from types import SimpleNamespace
 
 import pandas as pd
@@ -51,7 +50,7 @@ def workload_with_operator_forest():
 
 
 def apply_torch_operator_glob(pattern):
-    args = Namespace(torch_operator=[pattern])
+    args = argparse.Namespace(torch_operator=[pattern])
     cli = cli_analysis(args, {})
     workload = workload_with_operator_forest()
     cli.apply_operator_filter(args, workload, "/workload", ["torch"])
@@ -158,10 +157,10 @@ def test_parse_patterns_basic():
     """Single and multiple patterns are parsed correctly."""
     from rocprof_compute_analyze.analysis_cli import parse_operator_patterns
 
-    args = Namespace(torch_operator=["relu"])
+    args = argparse.Namespace(torch_operator=["relu"])
     assert parse_operator_patterns(args, ["torch"]) == {"torch": ["relu"]}
 
-    args = Namespace(torch_operator=["relu", "conv2d"])
+    args = argparse.Namespace(torch_operator=["relu", "conv2d"])
     assert parse_operator_patterns(args, ["torch"]) == {"torch": ["relu", "conv2d"]}
 
 
@@ -169,7 +168,7 @@ def test_parse_patterns_comma_split():
     """Comma-separated patterns in a single arg are split."""
     from rocprof_compute_analyze.analysis_cli import parse_operator_patterns
 
-    args = Namespace(torch_operator=["relu,conv2d"])
+    args = argparse.Namespace(torch_operator=["relu,conv2d"])
     assert parse_operator_patterns(args, ["torch"]) == {"torch": ["relu", "conv2d"]}
 
 
@@ -177,7 +176,7 @@ def test_parse_patterns_whitespace():
     """Leading/trailing whitespace is stripped."""
     from rocprof_compute_analyze.analysis_cli import parse_operator_patterns
 
-    args = Namespace(torch_operator=["  relu  ", " conv2d , linear "])
+    args = argparse.Namespace(torch_operator=["  relu  ", " conv2d , linear "])
     result = parse_operator_patterns(args, ["torch"])
     assert result == {"torch": ["relu", "conv2d", "linear"]}
 
@@ -187,23 +186,23 @@ def test_parse_patterns_empty():
     from rocprof_compute_analyze.analysis_cli import parse_operator_patterns
 
     parse = parse_operator_patterns
-    assert parse(Namespace(torch_operator=[]), ["torch"]) == {"torch": ["**"]}
-    assert parse(Namespace(torch_operator=None), ["torch"]) is None
-    assert parse(Namespace(), ["torch"]) is None
+    assert parse(argparse.Namespace(torch_operator=[]), ["torch"]) == {"torch": ["**"]}
+    assert parse(argparse.Namespace(torch_operator=None), ["torch"]) is None
+    assert parse(argparse.Namespace(), ["torch"]) is None
 
 
 def test_parse_operator_patterns_generic_attr():
     """parse_operator_patterns reads the given dest attribute."""
     from rocprof_compute_analyze.analysis_cli import parse_operator_patterns
 
-    args = Namespace(triton_operator=["*matmul*,*softmax*"], torch_operator=None)
+    args = argparse.Namespace(triton_operator=["*matmul*,*softmax*"], torch_operator=None)
     assert parse_operator_patterns(args, ["triton"]) == {
         "triton": ["*matmul*", "*softmax*"]
     }
     assert parse_operator_patterns(args, ["triton"]) != parse_operator_patterns(
         args, ["torch"]
     )
-    assert parse_operator_patterns(Namespace(triton_operator=[]), ["triton"]) == {
+    assert parse_operator_patterns(argparse.Namespace(triton_operator=[]), ["triton"]) == {
         "triton": ["**"]
     }
 
@@ -212,10 +211,10 @@ def test_parse_patterns_star():
     """'*' is passed through as-is by the pattern parser."""
     from rocprof_compute_analyze.analysis_cli import parse_operator_patterns
 
-    args = Namespace(torch_operator=["*"])
+    args = argparse.Namespace(torch_operator=["*"])
     assert parse_operator_patterns(args, ["torch"]) == {"torch": ["*"]}
 
-    args = Namespace(torch_operator=["*,torch.relu"])
+    args = argparse.Namespace(torch_operator=["*,torch.relu"])
     assert parse_operator_patterns(args, ["torch"]) == {"torch": ["*", "torch.relu"]}
 
 
@@ -248,7 +247,7 @@ def test_list_operators_joint_backend_heading(capsys):
 
 
 def test_handle_operator_prints_matched_subtree(capsys):
-    args = Namespace(torch_operator=["*addmm*"])
+    args = argparse.Namespace(torch_operator=["*addmm*"])
     cli = cli_analysis(args, {})
     workload = workload_with_operator_forest()
     cli.apply_operator_filter(args, workload, "/workload", ["torch"])
@@ -265,7 +264,7 @@ def test_apply_operator_filter_intersects_existing_kernel_ids(monkeypatch):
         "rocprof_compute_analyze.analysis_cli.console_warning",
         lambda *argv: warnings.append(argv),
     )
-    args = Namespace(torch_operator=["*relu*"], kernel=[0])
+    args = argparse.Namespace(torch_operator=["*relu*"], kernel=[0])
     cli = cli_analysis(args, {})
     workload = workload_with_operator_forest()
     workload.filter_kernel_ids = [0]
@@ -278,7 +277,7 @@ def test_apply_operator_filter_intersects_existing_kernel_ids(monkeypatch):
 
 
 def test_apply_operator_filter_keeps_intersection():
-    args = Namespace(torch_operator=["*addmm*"])
+    args = argparse.Namespace(torch_operator=["*addmm*"])
     cli = cli_analysis(args, {})
     workload = workload_with_operator_forest()
     workload.filter_kernel_ids = [0]
@@ -287,7 +286,7 @@ def test_apply_operator_filter_keeps_intersection():
 
 
 def test_apply_operator_filter_kernel_ids_only_from_requested_backend():
-    args = Namespace(torch_operator=["*"])
+    args = argparse.Namespace(torch_operator=["*"])
     cli = cli_analysis(args, {})
     workload = schema.Workload()
     workload.ml_api_call_trees = torch_parent_triton_child_forest()
