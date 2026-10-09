@@ -50,6 +50,7 @@
 #include "core/inc/amd_gpu_agent.h"
 #include "core/inc/amd_memory_region.h"
 #include "core/inc/runtime.h"
+#include "core/util/memory.h"
 #include "core/util/os.h"
 
 extern r_debug _amdgpu_r_debug;
@@ -598,9 +599,10 @@ hsa_status_t KfdVirtioDriver::Map(const core::DriverMemoryHandle& handle, void* 
                        drm_perm(perms), AMDGPU_VA_OP_MAP) != 0)
     return HSA_STATUS_ERROR;
 
-  // CPU side of the mapping: blob-map the allocation at the reserved VA
-  if (vhsaKmtVirtioMapHandleToVA(reinterpret_cast<void*>(handle.handle), mem, size) !=
-      HSAKMT_STATUS_SUCCESS) {
+  // CPU side of the mapping: blob-map the allocation at the reserved VA, honoring the
+  // caller's requested CPU access permission instead of always mapping it read-write.
+  if (vhsaKmtVirtioMapHandleToVA(reinterpret_cast<void*>(handle.handle), mem, size,
+                                PermissionsToMmapFlags(perms)) != HSAKMT_STATUS_SUCCESS) {
     vamdgpu_bo_va_op(ldrm_bo, offset, size, reinterpret_cast<uint64_t>(mem), 0,
                      AMDGPU_VA_OP_UNMAP);
     return HSA_STATUS_ERROR;
@@ -626,8 +628,13 @@ hsa_status_t KfdVirtioDriver::Unmap(const core::DriverMemoryHandle& handle, void
 
 hsa_status_t KfdVirtioDriver::CreateShareableHandle(core::DriverMemoryHandle* handle,
                                                     const core::Agent& agent, uint64_t* offset) {
-  // No CPU mmap offset: a virtio-gpu guest cannot mmap the host BO. The dmabuf fd is
-  // exported lazily when access is set.
+  // KNOWN GAP: handle->mmap_offset is left at 0 below. Runtime::MappedHandleAllowedAgent::
+  // EnableAccess's CPU-agent path maps GetDeviceFd() at driver_handle.mmap_offset for every
+  // MappedHandle, so hsa_amd_vmem_map with CPU access on a handle from this function will
+  // either fail or (worse) alias whatever is at file-offset 0. A correct fix needs a real
+  // VIRTGPU_MAP-style offset for the imported bo, e.g. via vamdgpu_bo_cpu_map() -- which is
+  // currently an unimplemented stub (see hsakmt_virtio_amdgpu.c). GPU-only access (the Map()/
+  // Unmap() path above) is unaffected. The dmabuf fd is exported lazily when access is set.
   if (handle == nullptr) return HSA_STATUS_ERROR_INVALID_ARGUMENT;
   if (offset != nullptr) *offset = 0;
 
